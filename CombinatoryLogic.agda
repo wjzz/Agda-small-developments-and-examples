@@ -26,7 +26,7 @@ data C : Set where
   _∙_ : C → C → C                        -- application
 
 -- NOTE: in this development we don't really mention variables
---       anywhere, so this could they could be deleted.
+--       anywhere, so they could be deleted.
 
 -----------------------------------
 --  The weak reduction relation  --
