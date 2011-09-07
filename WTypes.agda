@@ -1,6 +1,8 @@
-{-
-  @author: Wojciech Jedynak (wjedynak@gmail.com)
--}
+-- @author : Wojciech Jedynak (wjedynak@gmail.com)
+-- @date   : 2011-08-08
+-- @tags   : agda ; ML ; W-types
+-- @short  : Some experiments with the W-types from Maltin-Lôf's Type Theory.
+
 module WTypes where
 
 open import Data.Empty

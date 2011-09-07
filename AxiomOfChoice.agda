@@ -1,6 +1,8 @@
-{-
-  @author: Wojciech Jedynak (wjedynak@gmail.com)
--}
+-- @author : Wojciech Jedynak (wjedynak@gmail.com)
+-- @date   : 2011-08-07
+-- @tags   : agda ; choice
+-- @short  : Axiom of choice in Agda
+
 module AxiomOfChoice where
 
 open import Data.Product

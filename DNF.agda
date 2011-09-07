@@ -1,7 +1,7 @@
 -- @author : Wojciech Jedynak (wjedynak@gmail.com)
 -- @date   : 2011-09-01
 -- @tags   : Propositional logic ; DNF
--- @short  : A simple translation to DNF.
+-- @short  : A simple translation to DNF (Disjunctive Normal Form).
 
 module DNF where
 

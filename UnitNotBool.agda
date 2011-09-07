@@ -77,5 +77,5 @@ finsDifferent : ∀ (n m : ℕ) → n ≢ m → Fin n ≢ Fin m
 finsDifferent n m n≢m Fin-n≢Fin-m = {!!}
 
 -- it's easy to write a procedure (in LTac for Coq, in Lisp (:P) for Agda)
--- for given n and m, but I don't a way to show it once and for all.
+-- for given n and m, but I don't see a way to show it once and for all.
 -- We would have to define some theory of finite ordinals perhaps?
