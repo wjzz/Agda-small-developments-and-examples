@@ -166,10 +166,6 @@ fmap = imp-intro (imp-intro (sq-elim (true-lookup Z)
 fmap-inv : ⊢ (◻ A ⇒ ◻ B) ⇒ ◻ (A ⇒ B)
 fmap-inv = imp-intro {!!}                         -- no way!
 
-fmap-inv-lift : ⊢ (◻ A ⇒ ◻ B) → ⊢ ◻ (A ⇒ B)
-fmap-inv-lift der = sq-intro (imp-intro {!!})
-
-
 -- ◻ and ∧
 
 
@@ -179,8 +175,30 @@ equiv-and-l = imp-intro (and-intro (sq-elim (true-lookup Z)
                                    (sq-elim (true-lookup Z) 
                                     (sq-intro (and-elim2 (valid-lookup Z)))))
 
+equiv-and-r-lemma : ⊢ ◻ (◻ A ∧ ◻ B) ⇒ ◻ (A ∧ B)
+equiv-and-r-lemma = imp-intro (sq-elim (true-lookup Z) (sq-intro (and-intro
+  (sq-elim (and-elim1 (valid-lookup Z)) (valid-lookup Z)) 
+  (sq-elim (and-elim2 (valid-lookup Z)) (valid-lookup Z)))))
+
+equiv-and-r-curried : ⊢ ◻ A ⇒ ◻ B ⇒ ◻ (A ∧ B)
+equiv-and-r-curried = imp-intro (imp-intro (sq-elim (true-lookup Z) 
+                                           (sq-elim (true-lookup (S Z)) 
+                                            (sq-intro (and-intro (valid-lookup Z) 
+                                                                 (valid-lookup (S Z)))))))
+
+uncurry : ∀ F G H → ⊢ (F ⇒ G ⇒ H) ⇒ ((F ∧ G) ⇒ H)
+uncurry F G H = imp-intro (imp-intro (imp-elim (imp-elim (true-lookup (S Z)) 
+                          (and-elim1 (true-lookup Z))) (and-elim2 (true-lookup Z))))
+
 equiv-and-r : ⊢ (◻ A ∧ ◻ B) ⇒ ◻ (A ∧ B)
-equiv-and-r = imp-intro {!!}                      -- no proof!
+equiv-and-r = imp-elim (uncurry _ _ _) equiv-and-r-curried
+
+equiv-and-r-direct : ⊢ (◻ A ∧ ◻ B) ⇒ ◻ (A ∧ B)
+equiv-and-r-direct = imp-intro (sq-elim (and-elim1 (true-lookup Z)) 
+                                (sq-elim (and-elim2 (true-lookup Z)) 
+                                 (sq-intro (and-intro (valid-lookup (S Z)) 
+                                                      (valid-lookup Z)))))
+
 
 -- ◻ and ∨
 
@@ -207,7 +225,7 @@ equiv-bot-r = imp-intro (bot-elim (true-lookup Z))
 true : ⊢ ◻ (⊤ ∧ ⊤)
 true = sq-intro (and-intro top-intro top-intro)
 
-lemma-or :  ⊢ A ⇒ ◻ A 
-         →  ⊢ B ⇒ ◻ B 
-         →  ⊢ (A ∧ B) ⇒ ◻ (A ∧ B)
-lemma-or der1 der2 = imp-intro {!!}
+-- i don't see how to do this one
+
+lemma : ∀ F G → ⊢ (F ⇒ G) ⇒ (◻ F ⇒ ◻ G)
+lemma F G = imp-intro (imp-intro {!!})
