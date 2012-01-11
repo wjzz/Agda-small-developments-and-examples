@@ -1,6 +1,9 @@
 {-# OPTIONS  --injective-type-constructors #-}
 
-module Cantor where
+-- Code posted to the Agda mailing list
+-- Ilustrates that injective-type-constructors make Agda anti-classical
+
+module InjectivityInconsistence where
  
   data Empty : Set where
  
