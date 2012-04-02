@@ -22,6 +22,7 @@ infixl 5 _∙_
 infixr 5 _⇒_
 infix  2 _⊢_∶_
 infix  3 _⟶w_
+
 -------------
 --  Types  --
 -------------
@@ -189,3 +190,77 @@ correct (ReflTrans.suc (red-r y) rest) der der' = {!!}
 --  Normalization  --
 ---------------------
 
+------------------------------------------
+--  The notion of strong normalization  --
+------------------------------------------
+
+-- inductive definition of strong normalization
+
+data SN {n : ℕ} : Term n → Set where
+  sn : {t : Term n}
+     → (∀ t' 
+        → t ⟶w t' 
+        → SN t')
+     → SN t
+
+-- some lemmas
+
+
+-- Lemma: all variables are SN,
+--   because they can't be reduced.
+
+variable-SN : {n : ℕ} 
+            → (v : Fin n)
+            → SN (# v)
+
+variable-SN v = sn (λ t' ())
+
+-- Lemma: K s is SN   whenever   s is SN
+
+K-app-SN : {n : ℕ}
+         → (s : Term n)
+         → SN s
+         → SN (K ∙ s)
+
+K-app-SN {n} s (sn fs) = sn f where
+
+  f : (t' : Term n) → K ∙ s ⟶w t' → SN t'
+
+  f .(f' ∙ s) (red-l {.K} {f'} ())
+  f .(K ∙ a') (red-r {.K} {.s} {a'} y') = K-app-SN _ (fs _ y')
+
+-- Lemma: SN(t ∙ s) whenever SN(t) and SN(s)
+
+app-SN : {n : ℕ}
+       → (t s : Term n)
+       → SN t
+       → SN s
+       → SN (t ∙ s)
+
+app-SN {n} t s snt snf = sn (f t s snt snf) where
+
+  f : ∀ t s
+    → SN t
+    → SN s
+    → (c : Term n)
+    → t ∙ s ⟶w c 
+    → SN c
+
+  f .(K ∙ c) s' (sn ft) (sn fs) c (K .s') 
+    = {!!}
+
+  f .(S ∙ x ∙ y) s' (sn ft) (sn fs) .(x ∙ s' ∙ (y ∙ s')) (S {x} {y}) = {!!}
+  f t' s' (sn ft) (sn fs) .(f' ∙ s') (red-l {.t'} {f'} y) = {!  >!}
+  f t' s' (sn ft) (sn fs) .(t' ∙ a') (red-r {.t'} {.s'} {a'} y) = {!!}
+
+-------------------
+--  Main result  --
+-------------------
+
+all-combinators-strongly-normalizing 
+  : {n : ℕ}
+  → ∀ {t τ}
+  → ∅ ⊢ t ∶ τ
+  → SN t
+
+all-combinators-strongly-normalizing = {!!}

@@ -3,6 +3,9 @@ module ModalLogic where
 open import Data.Nat
 open import Data.Fin
 
+open import Relation.Binary.PropositionalEquality
+open import Relation.Nullary
+
 ----------------
 --  Formulas  --
 ----------------
@@ -134,6 +137,18 @@ data _,,_⊢_ : Ctx → Ctx → Formula → Set where
 
 ⊢_ : Formula → Set
 ⊢ F = ∅ ,, ∅ ⊢ F
+
+------------------------------
+--  Substitution principle  --
+------------------------------
+
+substitution : ∀ {Δ Γ A C}
+             → Δ ,, ∅ ⊢ A
+             → (Δ , A) ,, Γ ⊢ C
+             → Δ ,, Γ ⊢ C 
+
+substitution derA derB = sq-elim (sq-intro derA) derB
+
 
 ---------------------------
 --  Example derivations  --
