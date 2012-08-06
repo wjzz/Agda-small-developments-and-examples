@@ -13,7 +13,10 @@ open import Data.Empty
 open import Function
 
 open import Data.Vec
-open import Data.String
+open import Data.Vec.Utils hiding (_!_)
+open import Data.HetVec
+
+open import Data.String hiding (_==_)
 
 open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality
@@ -27,7 +30,57 @@ open import CPS
 --  Equivalence of denotations  --
 ----------------------------------
 
+{- LEMMA:
+denote (x₁ ∷ (x ∷ Δ)) (permutation swp (tlift M)) ≡
+      denote (x₁ ∷ Δ) M
+Have: denote (x ∷ (x₁ ∷ Δ)) (tlift M) ≡ denote (x₁ ∷ Δ) M
+-}
 
+
+arg-stack-permutation : ∀ {n t}
+                      → {Γ Γ' : Ctx n}
+                      → (Δ  : HetVec ⟦ Γ  ⟧c)
+                      → (Γ-perm : Γ ≈ Γ')
+                      → (M : Term Γ t)
+                      → let Δ' = proj₁ (perm-read ⟦_⟧t Γ-perm Δ) in
+                      denote Δ M ≡ denote Δ' (permutation Γ-perm M)
+
+arg-stack-permutation Δ nil (var () refl)
+arg-stack-permutation {Γ = ta ∷ tb ∷ Γ} (a ∷ b ∷ Δ) swp (var zero refl) = refl
+arg-stack-permutation Δ swp (var (suc zero) refl) = {!!}
+arg-stack-permutation Δ swp (var (suc (suc i)) refl) = {!!}
+arg-stack-permutation Δ (cns Γ-perm) (var zero refl) = {!!}
+arg-stack-permutation Δ (cns Γ-perm) (var (suc i) refl) = {!!}
+arg-stack-permutation Δ (trn Γ-perm Γ-perm₁) (var i refl) = {!!}
+
+arg-stack-permutation Δ Γ-perm (app t₁ M M₁) 
+  = cong₂ (_$_) (arg-stack-permutation Δ Γ-perm M) 
+                (arg-stack-permutation Δ Γ-perm M₁) 
+
+arg-stack-permutation Δ Γ-perm (abs M) = funcExt (λ x → arg-stack-permutation (x ∷ Δ) (cns Γ-perm) M)
+
+arg-stack-permutation Δ Γ-perm true = refl
+
+arg-stack-permutation Δ Γ-perm false = refl
+
+arg-stack-permutation Δ Γ-perm (cond M M₁ M₂) 
+  = cong₃ if_then_else_ (arg-stack-permutation Δ Γ-perm M) 
+                        (arg-stack-permutation Δ Γ-perm M₁) 
+                        (arg-stack-permutation Δ Γ-perm M₂)
+
+{- TODO: this needs to be generalized to permutations on heterogenous vectors -}
+
+swap-lemma : ∀ {n t tx ty}
+           → {Γ : Ctx n}
+           → (x : ⟦ tx ⟧t)
+           → (y : ⟦ ty ⟧t)
+           → (Δ : HetVec (V.map ⟦_⟧t Γ))
+           → (M : Term (tx ∷ ty ∷ Γ) t)
+           → denote (y ∷ (x ∷ Δ)) (permutation swp M) ≡ denote (x ∷ y ∷ Δ) M
+
+swap-lemma x y Δ M = {!!}
+
+{-
 lift-lemma0 : ∀ {n t} 
               → {Γ : Ctx n}
               → (Δ : HetVec (V.map ⟦_⟧t Γ))
@@ -37,8 +90,14 @@ lift-lemma0 : ∀ {n t}
               → let Δ' = x ∷ Δ in
               denote {Γ = t0 ∷ Γ} Δ' (tlift M) ≡ denote Δ M
 
-lift-lemma0 = {!!}
-
+lift-lemma0 {Γ = Γ} Δ (var i ind) t0 x = ? --rewrite map-lookup-commute2 ⟦_⟧t Γ i ind = refl
+lift-lemma0 Δ (app t₁ M N) t0 x = cong₂ (_$_) (lift-lemma0 Δ M t0 x) (lift-lemma0 Δ N t0 x) 
+lift-lemma0 Δ (abs M) t0 x = funcExt (λ x₁ → {!lift-lemma0 (x₁ ∷ Δ) M t0 x!})
+lift-lemma0 Δ true t0 x = refl
+lift-lemma0 Δ false t0 x = refl
+lift-lemma0 Δ (cond C M N) t0 x 
+  rewrite lift-lemma0 Δ C t0 x | lift-lemma0 Δ M t0 x | lift-lemma0 Δ N t0 x = refl
+-}
 
 lift-lemma : ∀ {n t} 
               → {Γ : Ctx n}
@@ -50,17 +109,7 @@ lift-lemma : ∀ {n t}
               → let Δ' = x ∷ Δ in
               denote {Γ = t0 ∷ Γ} Δ' (tlift M) ≡ denote {Γ = t0 ∷ Γ} (x ∷ Δ) (tlift N)
 
-lift-lemma Δ (var i ind) N eq t0 x = {!!}
-lift-lemma Δ (app t₁ M M₁) N eq t0 x = {!!}
-lift-lemma Δ (abs M) N eq t0 x = {!!}
-lift-lemma Δ true (var i ind) eq t0 x = {!!}
-lift-lemma Δ true (app t₁ N N₁) eq t0 x = {!!}
-lift-lemma Δ true true eq t0 x = refl
-lift-lemma Δ true false eq t0 x = eq
-lift-lemma Δ true (cond N N₁ N₂) eq t0 x = {!!}
-lift-lemma Δ false N eq t0 x = {!!}
-lift-lemma Δ (cond M M₁ M₂) N eq t0 x = {!!}
-
+lift-lemma Δ M N eq t0 x = {!!}
 
 cps-equiv-gen : ∀ {n t o} 
               → {Γ : Ctx n}

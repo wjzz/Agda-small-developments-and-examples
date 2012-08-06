@@ -1,8 +1,5 @@
 {-
   @author: Wojciech Jedynak (wjedynak@gmail.com)
-
-  TODO : 
-    * extract the permutation code to my library
 -}
 module CPS where
 
@@ -16,6 +13,7 @@ open import Data.Empty
 open import Function
 
 open import Data.Vec
+open import Data.Vec.Utils hiding (_!_)
 
 open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality
@@ -25,51 +23,6 @@ open import Data.String
 
 open import Terms
 open import Denote
-
-----------------------------
---  Context permutations  --
-----------------------------
-
-infix 3 _≈_
-
-data _≈_ : {n : ℕ} →  Ctx n → Ctx n → Set where
-  nil : ∅ ≈ ∅
-  swp : ∀ {a b n}{Γ : Ctx n} → a ∷ b ∷ Γ ≈ b ∷ a ∷ Γ
-  cns : ∀ {a n}  {Γ Γ' : Ctx n} 
-      → Γ ≈ Γ' 
-      → a ∷ Γ ≈ a ∷ Γ'
-  trn : ∀ {n}{Γ1 Γ2 Γ3 : Ctx n} 
-      → Γ1 ≈ Γ2 
-      → Γ2 ≈ Γ3
-      → Γ1 ≈ Γ3
-
-perm-reflexive : ∀ {n} (Γ : Ctx n) → Γ ≈ Γ
-perm-reflexive []       = nil
-perm-reflexive (x ∷ xs) = cns (perm-reflexive xs)
-
-perm-symmetric : ∀ {n}{Γ Γ' : Ctx n} → Γ ≈ Γ' → Γ' ≈ Γ
-perm-symmetric nil        = nil
-perm-symmetric swp        = swp
-perm-symmetric (cns x)    = cns (perm-symmetric x)
-perm-symmetric (trn x x₁) = trn (perm-symmetric x₁) (perm-symmetric x)
-
-perm-lookup : ∀ {n}
-            → {Γ Γ' : Ctx n}
-            → {x : Type}
-            → (i : Fin n)
-            → Γ ≈ Γ'
-            → Γ ! i ≡ x
-            → Σ[ j ∶ Fin n ](Γ' ! j ≡ x)
-
-perm-lookup () nil eq
-perm-lookup zero          swp eq = suc zero , eq
-perm-lookup (suc zero)    swp eq = zero , eq
-perm-lookup (suc (suc i)) swp eq = suc (suc i) , eq
-perm-lookup zero (cns perm) eq = zero , eq
-perm-lookup (suc i) (cns perm) eq with perm-lookup i perm eq
-... | j , rec = suc j , rec
-perm-lookup i (trn perm1 perm2) eq with perm-lookup i perm1 eq
-... | j , rec = perm-lookup j perm2 rec
 
 ----------------------------------
 --  Variable lifting in a term  --
@@ -230,6 +183,7 @@ cps false
   = ƛ "k" ⟶ k $$ false 
   where
     k = var (# 0) refl
+
 
 -- [code C M N] = λ k. [C] (λ c → if c then [M] k else [N] k)
 
