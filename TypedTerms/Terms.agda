@@ -17,8 +17,7 @@ open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality
 
 
-private
-  module V = Data.Vec
+module V = Data.Vec
 
 -------------
 --  Types  --

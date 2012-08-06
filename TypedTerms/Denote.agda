@@ -18,9 +18,6 @@ open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality
 open ≡-Reasoning
 
-private
-  module V = Data.Vec
-
 open import Terms
 
 ------------------

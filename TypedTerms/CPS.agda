@@ -21,8 +21,7 @@ open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality
 open ≡-Reasoning
 
-private
-  module V = Data.Vec
+open import Data.String
 
 open import Terms
 open import Denote
@@ -76,22 +75,29 @@ perm-lookup i (trn perm1 perm2) eq with perm-lookup i perm1 eq
 --  Variable lifting in a term  --
 ----------------------------------
 
+-- renaming of variables according to the given permutation
+
 permutation : ∀ {n t} {Γ Γ' : Ctx n}
             → Γ ≈ Γ'
             → Term Γ  t 
             → Term Γ' t
+
 permutation perm (var i ind) with perm-lookup i perm ind
 ... | j , eq = var j eq
-permutation perm (app t₁ t₂ t₃)  = app t₁ (permutation perm t₂) (permutation perm t₃)
-permutation perm (abs t)         = abs (permutation (cns perm) t)
-permutation perm true            = true
-permutation perm false           = true
-permutation perm (cond t₁ t₂ t₃) = permutation perm t₃
+permutation perm (app t₁ M N) = app t₁ (permutation perm M) (permutation perm N)
+permutation perm (abs M)      = abs (permutation (cns perm) M)
+permutation perm true         = true
+permutation perm false        = false
+permutation perm (cond C M N) = cond (permutation perm C) (permutation perm M) (permutation perm N)
+
+
+-- swapping of the two latest free variable
 
 tswap : ∀ {n t t1 t2} {Γ : Ctx n}
         → Term (t1 ∷ t2 ∷ Γ) t 
         → Term (t2 ∷ t1 ∷ Γ) t
 tswap = permutation swp
+
 
 -- ignoring the closest variable
 
@@ -124,8 +130,9 @@ tlift (cond C M N) = cond (tlift C) (tlift M) (tlift N)
 [ []    % o ]c = ∅
 [ t ∷ Γ % o ]c = [ t % o ] ∷ [ Γ % o ]c 
 
--------------------
--- lemmas
+--------------
+--  Lemmas  --
+--------------
 
 context-map : ∀ {n t o}{Γ : Ctx n}
             → (i : Fin n)
@@ -136,6 +143,44 @@ context-map {Γ = []} () _
 context-map {Γ = x ∷ Γ} zero  refl = refl
 context-map {Γ = x ∷ Γ} (suc i) eq = context-map i eq
 
+---------------------------
+--  Readability helpers  --
+---------------------------
+
+infixl 3 _$$_
+
+_$$_ : ∀ {n t₁ t₂}
+      → {Γ : Ctx n}
+      → (M : Term Γ (t₁ ⇒ t₂))
+      → (N : Term Γ t₁)
+      → Term Γ t₂
+M $$ N = app _ M N
+
+
+-- The string is *only* for readability!
+
+infix 2 ƛ_⟶_
+
+ƛ_⟶_ : ∀ {n t₁ t₂}
+      → {Γ : Ctx n}
+      → String
+      → (T : Term (t₁ ∷ Γ) t₂)
+      → Term Γ (t₁ ⇒ t₂)
+
+ƛ x ⟶ M = abs M
+
+-- conditional 
+
+infix 2 _??_::_ 
+
+_??_::_  : ∀ {n t} {Γ : Ctx n}
+        → Term Γ Boolean
+        → Term Γ t
+        → Term Γ t
+        → Term Γ t
+
+C ?? M :: N = cond C M N
+
 ----------------------------
 --  Typed CPS conversion  --
 ----------------------------
@@ -144,57 +189,134 @@ cps : ∀ {n t o}{Γ : Ctx n}
     → Term Γ t 
     → Term [ Γ % o ]c [ t % o ]'
 
-cps {t = t}{o = o} 
-  (var i ind) 
-  = abs (app [ t % o ] (var (# 0) refl) (var (suc i) (context-map i ind)))
+-- [ x ] = λ k. k x
 
-cps {t = t1 ⇒ t2} {o = o} {Γ = Γ}
-  (abs M)      -- λ k . k (λ x . cps M)
-  = abs (app [ t1 ⇒ t2 % o ] (var (# 0) refl) (abs (tswap (tlift M')))) 
+cps (var i ind) 
+  = ƛ "k" ⟶ k $$ x
   where
-     M' : Term [ t1 ∷ Γ % o ]c [ t2 % o ]'
-     M' = cps M
+    k = var (# 0) refl
+    x = var (suc i) (context-map i ind)
 
--- λ k. [M] (λ m. [N] (λ n. m n k))
-cps {t = t} {o = o} 
-  (app t₁ M N)
-  = abs {- k -} (app _ (tlift (cps M)) 
-                (abs {- m -} (app _ (tlift (tlift (cps N))) 
-                             (abs {- n -} (app _ (app _ m n) k))))) 
+
+-- [ λ x. M ] = λ k. k (λ x. cps M)
+
+cps (abs M)
+  = ƛ "k" ⟶ (k $$ (ƛ "x" ⟶ M'))
   where
+     k  = var (# 0) refl
+     M' = tswap (tlift (cps M))
+
+
+-- [ M N] = λ k. [M] (λ m. [N] (λ n. m n k))
+
+cps (app t₁ M N)
+  = ƛ "k" ⟶ M' $$ (ƛ "m" ⟶ (N' $$ (ƛ "n" ⟶ m $$ n $$ k)))
+  -- = abs {- k -} (M' $$ 
+  --               (abs {- m -} (N' $$ 
+  --                            (abs {- n -} (m $$ n $$ k)))))
+  where
+    M' = tlift (cps M)
+    N' = tlift (tlift (cps N))
     m = var (# 1) refl
     n = var (# 0) refl
     k = var (# 2) refl
 
-cps {o = o} true = abs (app Boolean k true) where
-  k = var (# 0) refl
+cps true 
+  = ƛ "k" ⟶ k $$ true 
+  where
+    k = var (# 0) refl
 
-cps {o = o} false = abs (app Boolean k false) where
-  k = var (# 0) refl
+cps false 
+  = ƛ "k" ⟶ k $$ false 
+  where
+    k = var (# 0) refl
 
--- λ k. [C] (λ c → if c then [M] k else [N] k)
+-- [code C M N] = λ k. [C] (λ c → if c then [M] k else [N] k)
+
 cps (cond C M N)    
-  = abs (app _ (tlift (cps C) ) 
-        (abs {- b -} (cond b 
-                           (app _ (tlift (tlift (cps M))) k)
-                           (app _ (tlift (tlift (cps N))) k))))
+  = ƛ "k" ⟶  (C'  $$  (ƛ "b" ⟶ (b ?? (M' $$ k) :: (N' $$ k))))
   where
     b = var (# 0) refl
     k = var (# 1) refl
+    C' = tlift (cps C)
+    M' = tlift (tlift (cps M))
+    N' = tlift (tlift (cps N))
 
--- ---------------------------------------------------------
--- -- K has to know how many binder levels it has went under
--- ----------------------------------------------------------
+---------------------------------------
+--  Optimized Typed CPS Converstion  --
+---------------------------------------
 
--- cps x = λ k → k x
--- cps (abs M) = λ k → k (abs (abs (cps M (abs (k (var (# 0) refl))))))
--- cps (app t0 M N) = λ k → cps M (λ m → ⟦ N ⟧ (λ n → (app (app m n) (abs (k (var (# 0) refl))))))
+opt-cps : ∀ {n t o}{Γ : Ctx n}
+    → Term Γ t 
+    → Term [ Γ % o ]c [ t % o ]'
 
--- {-
--- ⟦ x ⟧ = λ k. k x
+-- [ x ] = λ k. k x
 
--- ⟦ λ x. M ⟧ = λ k. k (λ x. λ k'. ⟦ M ⟧ (λ a. k' a))
+opt-cps (var i ind) 
+  = ƛ "k" ⟶ k $$ x
+  where
+    k = var (# 0) refl
+    x = var (suc i) (context-map i ind)
 
--- ⟦ M N ⟧ = λ k. ⟦ M ⟧ (λ m . ⟦ N ⟧ (λ n . m n (λ a . k a)))
--- -}
 
+-- [ λ x. M ] = λ k. k (λ x. opt-cps M)
+-- =>
+-- [ λ x. M ] = λ k. k (λ x. λ k2. (opt-cps M) (λ a. k2 a))
+
+opt-cps {o = o} (abs M) 
+  = ƛ "k" ⟶ (k $$ (ƛ "x" ⟶ ƛ "k2" ⟶ (M' $$ (ƛ "a" ⟶ k2 $$ a))))
+  where
+     a  = var (# 0) refl
+     k2 = var (# 1) refl
+     k  = var (# 0) refl
+     M' = tlift (tswap (tlift (opt-cps M)))
+
+
+-- [ M N] = λ k. [M] (λ m. [N] (λ n. m n k))
+-- =>
+-- [ M N] = λ k. [M] (λ m. [N] (λ n. m n (λ a → k a)))
+
+opt-cps (app t₁ M N)
+  = ƛ "k" ⟶ M' $$ (ƛ "m" ⟶ (N' $$ (ƛ "n" ⟶ m $$ n $$ (ƛ "a" ⟶ k $$ a))))
+  where
+    M' = tlift (opt-cps M)
+    N' = tlift (tlift (opt-cps N))
+    m = var (# 1) refl
+    n = var (# 0) refl
+    k = var (# 3) refl
+    a = var (# 0) refl
+
+opt-cps true 
+  = ƛ "k" ⟶ k $$ true 
+  where
+    k = var (# 0) refl
+
+opt-cps false 
+  = ƛ "k" ⟶ k $$ false 
+  where
+    k = var (# 0) refl
+
+-- [code C M N] = λ k. [C] (λ c → if c then [M] k else [N] k)
+
+opt-cps (cond C M N)    
+  = ƛ "k" ⟶  (C'  $$  (ƛ "b" ⟶ (b ?? (M' $$ k) :: (N' $$ k))))
+  where
+    b = var (# 0) refl
+    k = var (# 1) refl
+    C' = tlift (opt-cps C)
+    M' = tlift (tlift (opt-cps M))
+    N' = tlift (tlift (opt-cps N))
+
+
+----------------
+--  Examples  --
+----------------
+
+ex-simple : ∀ o → Term ∅ [ (Boolean ⇒ Boolean) % o ]'
+ex-simple o = cps {Γ = ∅} (abs (cond (var (# 0) refl) false true))
+
+ex-simple2 : ∀ o → Term ∅ [ (Boolean ⇒ Boolean) % o ]'
+ex-simple2 o = opt-cps {Γ = ∅} (abs (cond (var (# 0) refl) false true))
+
+lemma : ∀ o → ⟦ ex-simple o ⟧ ≡ ⟦ ex-simple2 o ⟧
+lemma o = refl
