@@ -40,6 +40,7 @@ ex = node 20 (node 10 leaf leaf)
 --------------------------------
 --  Hand-written state monad  --
 --------------------------------
+
 module MyStateMonad where
   State : Set
   State = ℕ
