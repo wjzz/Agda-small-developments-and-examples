@@ -37,6 +37,20 @@ Have: denote (x ∷ (x₁ ∷ Δ)) (tlift M) ≡ denote (x₁ ∷ Δ) M
 -}
 
 
+{-
+
+TODO: 
+  this perm-read may not be accurate enough!
+
+  a list of types is not enough
+
+  (Nat, Nat) ≈ (Nat, Nat)  , but
+
+  (1 , 2) ≈ (2, 1).
+
+  This may be the reason our proof doesn't go well in the variable case!
+-}
+
 arg-stack-permutation : ∀ {n t}
                       → {Γ Γ' : Ctx n}
                       → (Δ  : HetVec ⟦ Γ  ⟧c)
@@ -45,13 +59,8 @@ arg-stack-permutation : ∀ {n t}
                       → let Δ' = proj₁ (perm-read ⟦_⟧t Γ-perm Δ) in
                       denote Δ M ≡ denote Δ' (permutation Γ-perm M)
 
-arg-stack-permutation Δ nil (var () refl)
-arg-stack-permutation {Γ = ta ∷ tb ∷ Γ} (a ∷ b ∷ Δ) swp (var zero refl) = refl
-arg-stack-permutation Δ swp (var (suc zero) refl) = {!!}
-arg-stack-permutation Δ swp (var (suc (suc i)) refl) = {!!}
-arg-stack-permutation Δ (cns Γ-perm) (var zero refl) = {!!}
-arg-stack-permutation Δ (cns Γ-perm) (var (suc i) refl) = {!!}
-arg-stack-permutation Δ (trn Γ-perm Γ-perm₁) (var i refl) = {!!}
+arg-stack-permutation Δ Γ-perm (var i refl) with (perm-read ⟦_⟧t Γ-perm Δ) | perm-lookup i Γ-perm refl
+... | Δ' , Δ-prf | j , j-prf = {!!}
 
 arg-stack-permutation Δ Γ-perm (app t₁ M M₁) 
   = cong₂ (_$_) (arg-stack-permutation Δ Γ-perm M) 

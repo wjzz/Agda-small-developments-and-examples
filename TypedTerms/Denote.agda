@@ -91,7 +91,10 @@ denote : {n : ℕ}
 -- denote {Γ = Γ} Δ (var i prf) rewrite map-lookup-commute2 ⟦_⟧t Γ i prf
 --   =  Δ !! i 
 
-denote Δ (var i prf) rewrite sym prf 
+-- denote Δ (var i prf) rewrite sym prf 
+--   = hlookup _ ⟦_⟧t Δ i
+
+denote Δ (var i refl)
   = hlookup _ ⟦_⟧t Δ i
 
 denote Δ (app t₁ M N) 
